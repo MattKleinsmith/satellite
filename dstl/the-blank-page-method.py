@@ -51,14 +51,12 @@ def plots(imgs, figsize=(12, 12), rows=1, cols=1, interp=None, titles=None, cmap
         plt.axis('off')
 
 
-# ## Global variables
+# ## Split the dataset into train_all and test
 
-# In[2]:
+# In[ ]:
 
 INPUT_DIR = 'input/'
 
-
-# ## Split the dataset into train_all and test
 
 # In[2]:
 
@@ -165,25 +163,24 @@ sorted(glob('test/*.tif'))[:8]
 # 
 # 
 
-# ### Practice on one image
+# In[2]:
 
-# In[255]:
-
+IM_ID = '6120_2_0'
 PATCH_LEN = 200
-FRACTION_VALID = 0.20
-N_BARS = 4
 
 
-# In[414]:
+# ### Load image
 
-im = tiff.imread('train_all/inputs/6120_2_0.tif')
+# In[3]:
+
+im = tiff.imread('train_all/inputs/{}.tif'.format(IM_ID))
 im = np.rollaxis(im, 0, 3)
 im = (im - im.min()) / (im.max() - im.min())
 
 plots(im, figsize=(6, 6))
 
 
-# In[415]:
+# In[4]:
 
 im2 = im.copy()
 n_patches = 4
@@ -191,14 +188,24 @@ cv2.rectangle(im2, (10, 15), (n_patches*PATCH_LEN, PATCH_LEN), (1, 0, 0), 10)
 plots(im2, figsize=(6, 6))
 
 
-# In[257]:
+# In[5]:
 
 imgs = [im[:PATCH_LEN, k*PATCH_LEN:(k+1)*PATCH_LEN, :] for k in range(n_patches)]
 
 plots(imgs, cols=n_patches, figsize=(16, 4))
 
 
-# In[258]:
+# ### Create validation set
+
+# In[6]:
+
+FRACTION_VALID = 0.20
+N_BARS = 4
+
+
+# #### Naive validation sampling
+
+# In[7]:
 
 h, w = im.shape[:2]
 r_max = h - PATCH_LEN
@@ -213,11 +220,11 @@ cv2.rectangle(im2, (10, 15), (c_max, r_max), (1, 0, 0), 10)
 plots(im2, figsize=(6, 6))
 
 
-# In[259]:
+# In[8]:
 
 im3 = im2.copy()
 patches = []
-for _ in range(100):
+for _ in range(14*4):
     r = np.random.randint(0, r_max)
     c = np.random.randint(0, c_max)
     r2, c2 = r+PATCH_LEN, c+PATCH_LEN
@@ -226,7 +233,9 @@ for _ in range(100):
 plots(im3, figsize=(6, 6))
 
 
-# In[353]:
+# #### Create horizontal bars
+
+# In[9]:
 
 h, w = im.shape[:2]
 image_area = h * w
@@ -248,7 +257,7 @@ print(patch_area)
 print(patches_per_bar)
 
 
-# In[398]:
+# In[10]:
 
 r_min_1 = PATCH_LEN*3
 r_max_1 = h - PATCH_LEN*4
@@ -267,7 +276,7 @@ cv2.rectangle(im4, (c_min, r_min_1), (c_max, r_max_1), (1, 1, 1), 10)
 plots(im4, figsize=(6, 6))
 
 
-# In[406]:
+# In[11]:
 
 im5 = im4.copy()
 bar_anchors = []
@@ -286,25 +295,29 @@ for _ in range(N_BARS//2):
 plots(im5, figsize=(6, 6))
 
 
-# In[407]:
+# In[12]:
 
 im6 = im5.copy()
-patches = []
+im10 = im.copy()
+patches_val = []
 for r_bar, c_bar in bar_anchors:
     for i in range(patches_per_bar):
         c = c_bar + i*PATCH_LEN
         r2, c2 = r_bar+PATCH_LEN, c+PATCH_LEN
-        patches.append(im[r_bar:r2, c:c2])
+        patches_val.append(im[r_bar:r2, c:c2])
         cv2.rectangle(im6, (c, r_bar), (c2, r2), (0, 1, 0), 10)
+        cv2.rectangle(im10, (c, r_bar), (c2, r2), (0, 1, 0), 10)
 plots(im6, figsize=(6, 6))
 
 
-# In[408]:
+# In[13]:
 
-plots(patches, rows=N_BARS//2, cols=patches_per_bar, figsize=(15, N_BARS//2))
+plots(patches_val, rows=N_BARS//2, cols=patches_per_bar, figsize=(15, N_BARS//2))
 
 
-# In[409]:
+# #### Create vertical bars
+
+# In[14]:
 
 c_min_1 = PATCH_LEN*3
 c_max_1 = w - PATCH_LEN*4
@@ -323,13 +336,12 @@ cv2.rectangle(im7, (c_min_1, r_min), (c_max_1, r_max), (1, 1, 1), 10)
 plots(im7, figsize=(6, 6))
 
 
-# In[410]:
+# In[15]:
 
 im8 = im7.copy()
-bar_anchors = []
 for _ in range(N_BARS//2):
-    if bar_anchors:  # Only works with two bars right now
-        c_bar = bar_anchors[0][1]
+    if bar_anchors[2:]:  # Only works with two bars right now
+        c_bar = bar_anchors[2:][0][1]
         c_above = np.random.randint(c_min_2, c_bar-PATCH_LEN)
         c_below = np.random.randint(c_bar+2*PATCH_LEN, c_max_2)
         c = np.random.choice([c_above, c_below])
@@ -342,19 +354,97 @@ for _ in range(N_BARS//2):
 plots(im8, figsize=(6, 6))
 
 
-# In[411]:
+# In[16]:
 
 im9 = im8.copy()
-for r_bar, c_bar in bar_anchors:
+for r_bar, c_bar in bar_anchors[2:]:
     for i in range(patches_per_bar):
         r_i = r_bar + i*PATCH_LEN
         r2, c2 = r_i+PATCH_LEN, c_bar+PATCH_LEN
-        patches.append(im[r_i:r2, c_bar:c2])
+        patches_val.append(im[r_i:r2, c_bar:c2])
         cv2.rectangle(im9, (c_bar, r_i), (c2, r2), (0, 1, 0), 10)
+        cv2.rectangle(im10, (c_bar, r_i), (c2, r2), (0, 1, 0), 10)
 plots(im9, figsize=(6, 6))
 
 
-# In[412]:
+# #### Validation patches
 
-plots(patches, rows=N_BARS, cols=patches_per_bar, figsize=(15, N_BARS))
+# In[17]:
+
+plots(im10, figsize=(6, 6))
+
+
+# In[18]:
+
+plots(patches_val, rows=N_BARS, cols=patches_per_bar, figsize=(15, N_BARS))
+
+
+# In[19]:
+
+plots(patches_val[7], figsize=(6, 6))
+
+
+# Is 200 x 200 a big enough patch size for images of this spatial resolution?
+
+# ### Create training set
+
+# In[20]:
+
+plots(im10, figsize=(6, 6))
+
+
+# #### Calculate unallowed ranges for training patch coordinates
+
+# ##### Start with one validation bar
+
+# In[110]:
+
+bar_anchor = bar_anchors[1]
+
+c_min = bar_anchor[1]
+c_max = c_min + PATCH_LEN*patches_per_bar
+
+r_min = bar_anchor[0]
+r_max = bar_anchor[0] + PATCH_LEN
+
+print(bar_anchor)
+print(patches_per_bar)
+print(c_min, c_max)
+print(r_min, r_max)
+
+
+# In[124]:
+
+def in_interval(x, a, b):
+    return x >= a and x <= b
+
+im11 = im10.copy()
+for _ in range(300):
+    # sample
+    r = np.random.randint(0, h - PATCH_LEN)
+    c = np.random.randint(0, w - PATCH_LEN)
+    patch_corners = [(r, c), (r, c+PATCH_LEN), (r+PATCH_LEN, c), (r+PATCH_LEN, c+PATCH_LEN)]
+
+    # test
+    accepted = True
+    for r, c in patch_corners:
+        if in_interval(r, r_min, r_max) and in_interval(c, c_min, c_max):
+            #print(r, r_min, r_max)
+            #print(c, c_min, c_max)
+            accepted = False
+            break
+    string = "Accepted" if accepted else "Rejected"
+    if accepted:
+        cv2.rectangle(im11, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
+    else:
+        pass
+        #cv2.rectangle(im11, patch_corners[0][::-1], patch_corners[-1][::-1], (1, 0, 0), 10)
+plots(im11, figsize=(6, 6))
+
+
+# ##### Calculate it for all validation bars
+
+# In[ ]:
+
+
 
