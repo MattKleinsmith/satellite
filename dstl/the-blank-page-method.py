@@ -174,11 +174,16 @@ FRACTION_VALID = 0.20
 N_BARS = 4
 
 
-# In[256]:
+# In[414]:
 
 im = tiff.imread('train_all/inputs/6120_2_0.tif')
 im = np.rollaxis(im, 0, 3)
 im = (im - im.min()) / (im.max() - im.min())
+
+plots(im, figsize=(6, 6))
+
+
+# In[415]:
 
 im2 = im.copy()
 n_patches = 4
@@ -221,33 +226,36 @@ for _ in range(100):
 plots(im3, figsize=(6, 6))
 
 
-# In[260]:
+# In[353]:
 
 h, w = im.shape[:2]
 image_area = h * w
 patches_per_row = int(w / PATCH_LEN)
+patches_per_col = int(h / PATCH_LEN)
 bar_area = image_area * FRACTION_VALID / N_BARS
 patch_area = PATCH_LEN**2
 patches_per_bar = int(bar_area / patch_area)
 
 assert patches_per_row >= patches_per_bar
+assert patches_per_col >= patches_per_bar
 
 print(h, w)
 print(image_area)
 print(patches_per_row)
+print(patches_per_col)
 print(bar_area)
 print(patch_area)
 print(patches_per_bar)
 
 
-# In[330]:
+# In[398]:
 
-r_min_1 = PATCH_LEN*2
-r_max_1 = h - PATCH_LEN*3
-r_min_2 = r_min_1 - PATCH_LEN
-r_max_2 = r_max_1 + PATCH_LEN
+r_min_1 = PATCH_LEN*3
+r_max_1 = h - PATCH_LEN*4
+r_min_2 = r_min_1 - PATCH_LEN*2
+r_max_2 = r_max_1 + PATCH_LEN*2
 c_min = PATCH_LEN
-c_max = w - PATCH_LEN*(patches_per_bar+1)
+c_max = c_min + PATCH_LEN
 
 print(r_min_1, r_max_1)
 print(r_min_2, r_max_2)
@@ -259,7 +267,7 @@ cv2.rectangle(im4, (c_min, r_min_1), (c_max, r_max_1), (1, 1, 1), 10)
 plots(im4, figsize=(6, 6))
 
 
-# In[337]:
+# In[406]:
 
 im5 = im4.copy()
 bar_anchors = []
@@ -278,7 +286,7 @@ for _ in range(N_BARS//2):
 plots(im5, figsize=(6, 6))
 
 
-# In[338]:
+# In[407]:
 
 im6 = im5.copy()
 patches = []
@@ -291,26 +299,62 @@ for r_bar, c_bar in bar_anchors:
 plots(im6, figsize=(6, 6))
 
 
-# In[339]:
+# In[408]:
 
-plots(patches, rows=N_BARS//2, cols=patches_per_bar, figsize=(15, 2))
+plots(patches, rows=N_BARS//2, cols=patches_per_bar, figsize=(15, N_BARS//2))
 
 
-# In[300]:
+# In[409]:
 
-r_min_1 = PATCH_LEN*2
-r_max_1 = h - PATCH_LEN*3
-r_min_2 = r_min_1 - PATCH_LEN
-r_max_2 = r_max_1 + PATCH_LEN
-c_min = PATCH_LEN
-c_max = w - PATCH_LEN*(patches_per_bar+1)
+c_min_1 = PATCH_LEN*3
+c_max_1 = w - PATCH_LEN*4
+c_min_2 = c_min_1 - PATCH_LEN*2
+c_max_2 = c_max_1 + PATCH_LEN*2
+r_min = PATCH_LEN
+r_max = r_min + PATCH_LEN
 
 print(r_min_1, r_max_1)
 print(r_min_2, r_max_2)
 print(c_min, c_max)
 
-im4 = im.copy()
-cv2.rectangle(im4, (c_min, r_min_2), (c_max, r_max_2), (1, 1, 0), 10)
-cv2.rectangle(im4, (c_min, r_min_1), (c_max, r_max_1), (1, 1, 1), 10)
-plots(im4, figsize=(6, 6))
+im7 = im6.copy()
+cv2.rectangle(im7, (c_min_2, r_min), (c_max_2, r_max), (1, 1, 0), 10)
+cv2.rectangle(im7, (c_min_1, r_min), (c_max_1, r_max), (1, 1, 1), 10)
+plots(im7, figsize=(6, 6))
+
+
+# In[410]:
+
+im8 = im7.copy()
+bar_anchors = []
+for _ in range(N_BARS//2):
+    if bar_anchors:  # Only works with two bars right now
+        c_bar = bar_anchors[0][1]
+        c_above = np.random.randint(c_min_2, c_bar-PATCH_LEN)
+        c_below = np.random.randint(c_bar+2*PATCH_LEN, c_max_2)
+        c = np.random.choice([c_above, c_below])
+    else:
+        c = np.random.randint(c_min_1, c_max_1)
+    r = np.random.randint(r_min, r_max)
+    c2, r2 = c+PATCH_LEN, r+PATCH_LEN*patches_per_bar
+    bar_anchors.append((r, c))
+    cv2.rectangle(im8, (c, r), (c2, r2), (1, 0, 0), 10)
+plots(im8, figsize=(6, 6))
+
+
+# In[411]:
+
+im9 = im8.copy()
+for r_bar, c_bar in bar_anchors:
+    for i in range(patches_per_bar):
+        r_i = r_bar + i*PATCH_LEN
+        r2, c2 = r_i+PATCH_LEN, c_bar+PATCH_LEN
+        patches.append(im[r_i:r2, c_bar:c2])
+        cv2.rectangle(im9, (c_bar, r_i), (c2, r2), (0, 1, 0), 10)
+plots(im9, figsize=(6, 6))
+
+
+# In[412]:
+
+plots(patches, rows=N_BARS, cols=patches_per_bar, figsize=(15, N_BARS))
 
