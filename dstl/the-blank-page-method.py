@@ -49,6 +49,9 @@ def plots(imgs, figsize=(12, 12), rows=1, cols=1, interp=None, titles=None, cmap
             sp.set_title(titles[i], fontsize=18)
         plt.imshow(imgs[i], interpolation=interp[i], cmap=cmap[i])
         plt.axis('off')
+        
+def in_interval(x, a, b):
+    return x >= a and x <= b
 
 
 # ## Split the dataset into train_all and test
@@ -413,11 +416,9 @@ print(c_min, c_max)
 print(r_min, r_max)
 
 
-# In[124]:
+# In[133]:
 
-def in_interval(x, a, b):
-    return x >= a and x <= b
-
+im11_red = im10.copy()
 im11 = im10.copy()
 for _ in range(300):
     # sample
@@ -436,13 +437,174 @@ for _ in range(300):
     string = "Accepted" if accepted else "Rejected"
     if accepted:
         cv2.rectangle(im11, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
+        cv2.rectangle(im11_red, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
     else:
         pass
-        #cv2.rectangle(im11, patch_corners[0][::-1], patch_corners[-1][::-1], (1, 0, 0), 10)
+        cv2.rectangle(im11_red, patch_corners[0][::-1], patch_corners[-1][::-1], (1, 0, 0), 10)
+plots(im11_red, figsize=(6, 6))
+
+
+# In[134]:
+
 plots(im11, figsize=(6, 6))
 
 
 # ##### Calculate it for all validation bars
+
+# In[138]:
+
+x = [(1, 2), (3, 4)]
+for i, p in enumerate(x):
+    print(i, p)
+
+
+# In[140]:
+
+x = [(1, 2), (3, 4)]
+for i, (a, b) in enumerate(x):
+    print(i, a, b)
+
+
+# In[142]:
+
+im12_red = im10.copy()
+im12 = im10.copy()
+c_intervals = []
+r_intervals = []
+for i, (r_min, c_min) in enumerate(bar_anchors):
+    # define the intervals
+    if i < 2:
+        r_max = r_min + PATCH_LEN
+        c_max = c_min + PATCH_LEN*patches_per_bar
+    else:
+        r_max = r_min + PATCH_LEN*patches_per_bar
+        c_max = c_min + PATCH_LEN
+    r_intervals.append((r_min, r_max))
+    c_intervals.append((c_min, c_max))
+
+for _ in range(300):
+    # sample
+    r = np.random.randint(0, h - PATCH_LEN)
+    c = np.random.randint(0, w - PATCH_LEN)
+    patch_corners = [(r, c), (r, c+PATCH_LEN), (r+PATCH_LEN, c), (r+PATCH_LEN, c+PATCH_LEN)]
+
+    # test
+    accepted = True
+    for r, c in patch_corners:
+        for (r_min, r_max), (c_min, c_max) in zip(r_intervals, c_intervals):
+            if in_interval(r, r_min, r_max) and in_interval(c, c_min, c_max):
+                accepted = False
+                break
+        if not accepted:
+            break
+    string = "Accepted" if accepted else "Rejected"
+    if accepted:
+        cv2.rectangle(im12, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
+        cv2.rectangle(im12_red, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
+    else:
+        pass
+        cv2.rectangle(im12_red, patch_corners[0][::-1], patch_corners[-1][::-1], (1, 0, 0), 10)
+plots(im12_red, figsize=(6, 6))
+
+
+# In[143]:
+
+plots(im12, figsize=(6, 6))
+
+
+# In[145]:
+
+im12_red = im10.copy()
+im12 = im10.copy()
+c_intervals = []
+r_intervals = []
+for i, (r_min, c_min) in enumerate(bar_anchors):
+    # define the intervals
+    if i < 2:
+        r_max = r_min + PATCH_LEN
+        c_max = c_min + PATCH_LEN*patches_per_bar
+    else:
+        r_max = r_min + PATCH_LEN*patches_per_bar
+        c_max = c_min + PATCH_LEN
+    r_intervals.append((r_min, r_max))
+    c_intervals.append((c_min, c_max))
+
+for _ in range(400):
+    # sample
+    r = np.random.randint(0, h - PATCH_LEN)
+    c = np.random.randint(0, w - PATCH_LEN)
+    patch_corners = [(r, c), (r, c+PATCH_LEN), (r+PATCH_LEN, c), (r+PATCH_LEN, c+PATCH_LEN)]
+
+    # test
+    accepted = True
+    for r, c in patch_corners:
+        for (r_min, r_max), (c_min, c_max) in zip(r_intervals, c_intervals):
+            if in_interval(r, r_min, r_max) and in_interval(c, c_min, c_max):
+                accepted = False
+                break
+        if not accepted:
+            break
+    string = "Accepted" if accepted else "Rejected"
+    if accepted:
+        cv2.rectangle(im12, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
+        cv2.rectangle(im12_red, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
+    else:
+        pass
+        cv2.rectangle(im12_red, patch_corners[0][::-1], patch_corners[-1][::-1], (1, 0, 0), 10)
+plots(im12_red, figsize=(6, 6))
+
+
+# In[146]:
+
+plots(im12, figsize=(6, 6))
+
+
+# In[147]:
+
+im12_red = im10.copy()
+im12 = im10.copy()
+c_intervals = []
+r_intervals = []
+for i, (r_min, c_min) in enumerate(bar_anchors):
+    # define the intervals
+    if i < 2:
+        r_max = r_min + PATCH_LEN
+        c_max = c_min + PATCH_LEN*patches_per_bar
+    else:
+        r_max = r_min + PATCH_LEN*patches_per_bar
+        c_max = c_min + PATCH_LEN
+    r_intervals.append((r_min, r_max))
+    c_intervals.append((c_min, c_max))
+
+for _ in range(1000):
+    # sample
+    r = np.random.randint(0, h - PATCH_LEN)
+    c = np.random.randint(0, w - PATCH_LEN)
+    patch_corners = [(r, c), (r, c+PATCH_LEN), (r+PATCH_LEN, c), (r+PATCH_LEN, c+PATCH_LEN)]
+
+    # test
+    accepted = True
+    for r, c in patch_corners:
+        for (r_min, r_max), (c_min, c_max) in zip(r_intervals, c_intervals):
+            if in_interval(r, r_min, r_max) and in_interval(c, c_min, c_max):
+                accepted = False
+                break
+        if not accepted:
+            break
+    string = "Accepted" if accepted else "Rejected"
+    if accepted:
+        cv2.rectangle(im12, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
+        cv2.rectangle(im12_red, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
+    else:
+        pass
+        cv2.rectangle(im12_red, patch_corners[0][::-1], patch_corners[-1][::-1], (1, 0, 0), 10)
+plots(im12_red, figsize=(6, 6))
+
+
+# In[148]:
+
+plots(im12, figsize=(6, 6))
+
 
 # In[ ]:
 
