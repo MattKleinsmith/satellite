@@ -246,7 +246,7 @@ patches_per_row = int(w / PATCH_LEN)
 patches_per_col = int(h / PATCH_LEN)
 bar_area = image_area * FRACTION_VALID / N_BARS
 patch_area = PATCH_LEN**2
-patches_per_bar = int(bar_area / patch_area)
+patches_per_bar = int(bar_area / patch_area) - 1
 
 assert patches_per_row >= patches_per_bar
 assert patches_per_col >= patches_per_bar
@@ -302,6 +302,7 @@ plots(im5, figsize=(6, 6))
 
 im6 = im5.copy()
 im10 = im.copy()
+im10_full = im.copy()
 patches_val = []
 for r_bar, c_bar in bar_anchors:
     for i in range(patches_per_bar):
@@ -310,6 +311,7 @@ for r_bar, c_bar in bar_anchors:
         patches_val.append(im[r_bar:r2, c:c2])
         cv2.rectangle(im6, (c, r_bar), (c2, r2), (0, 1, 0), 10)
         cv2.rectangle(im10, (c, r_bar), (c2, r2), (0, 1, 0), 10)
+        cv2.rectangle(im10_full, (c, r_bar), (c2, r2), (0, 1, 0), -1)
 plots(im6, figsize=(6, 6))
 
 
@@ -329,9 +331,9 @@ c_max_2 = c_max_1 + PATCH_LEN*2
 r_min = PATCH_LEN
 r_max = r_min + PATCH_LEN
 
-print(r_min_1, r_max_1)
-print(r_min_2, r_max_2)
-print(c_min, c_max)
+print(c_min_1, c_max_1)
+print(c_min_2, c_max_2)
+print(r_min, r_max)
 
 im7 = im6.copy()
 cv2.rectangle(im7, (c_min_2, r_min), (c_max_2, r_max), (1, 1, 0), 10)
@@ -345,13 +347,13 @@ im8 = im7.copy()
 for _ in range(N_BARS//2):
     if bar_anchors[2:]:  # Only works with two bars right now
         c_bar = bar_anchors[2:][0][1]
-        c_above = np.random.randint(c_min_2, c_bar-PATCH_LEN)
-        c_below = np.random.randint(c_bar+2*PATCH_LEN, c_max_2)
-        c = np.random.choice([c_above, c_below])
+        c_left_of = np.random.randint(c_min_2, c_bar-2*PATCH_LEN)
+        c_right_of = np.random.randint(c_bar+2*PATCH_LEN, c_max_2)
+        c = np.random.choice([c_left_of, c_right_of])
     else:
         c = np.random.randint(c_min_1, c_max_1)
     r = np.random.randint(r_min, r_max)
-    c2, r2 = c+PATCH_LEN, r+PATCH_LEN*patches_per_bar
+    c2, r2 = c+PATCH_LEN, r+PATCH_LEN*(patches_per_bar)
     bar_anchors.append((r, c))
     cv2.rectangle(im8, (c, r), (c2, r2), (1, 0, 0), 10)
 plots(im8, figsize=(6, 6))
@@ -367,6 +369,7 @@ for r_bar, c_bar in bar_anchors[2:]:
         patches_val.append(im[r_i:r2, c_bar:c2])
         cv2.rectangle(im9, (c_bar, r_i), (c2, r2), (0, 1, 0), 10)
         cv2.rectangle(im10, (c_bar, r_i), (c2, r2), (0, 1, 0), 10)
+        cv2.rectangle(im10_full, (c_bar, r_i), (c2, r2), (0, 1, 0), -1)
 plots(im9, figsize=(6, 6))
 
 
@@ -400,7 +403,7 @@ plots(im10, figsize=(6, 6))
 
 # ##### Start with one validation bar
 
-# In[110]:
+# In[21]:
 
 bar_anchor = bar_anchors[1]
 
@@ -416,7 +419,7 @@ print(c_min, c_max)
 print(r_min, r_max)
 
 
-# In[133]:
+# In[22]:
 
 im11_red = im10.copy()
 im11 = im10.copy()
@@ -444,28 +447,28 @@ for _ in range(300):
 plots(im11_red, figsize=(6, 6))
 
 
-# In[134]:
+# In[23]:
 
 plots(im11, figsize=(6, 6))
 
 
 # ##### Calculate it for all validation bars
 
-# In[138]:
+# In[24]:
 
 x = [(1, 2), (3, 4)]
 for i, p in enumerate(x):
     print(i, p)
 
 
-# In[140]:
+# In[25]:
 
 x = [(1, 2), (3, 4)]
 for i, (a, b) in enumerate(x):
     print(i, a, b)
 
 
-# In[142]:
+# In[26]:
 
 im12_red = im10.copy()
 im12 = im10.copy()
@@ -507,12 +510,12 @@ for _ in range(300):
 plots(im12_red, figsize=(6, 6))
 
 
-# In[143]:
+# In[27]:
 
 plots(im12, figsize=(6, 6))
 
 
-# In[145]:
+# In[28]:
 
 im12_red = im10.copy()
 im12 = im10.copy()
@@ -554,13 +557,14 @@ for _ in range(400):
 plots(im12_red, figsize=(6, 6))
 
 
-# In[146]:
+# In[29]:
 
 plots(im12, figsize=(6, 6))
 
 
-# In[147]:
+# In[30]:
 
+im12_full = im10_full.copy()
 im12_red = im10.copy()
 im12 = im10.copy()
 c_intervals = []
@@ -594,6 +598,7 @@ for _ in range(1000):
     string = "Accepted" if accepted else "Rejected"
     if accepted:
         cv2.rectangle(im12, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
+        cv2.rectangle(im12_full, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), -1)
         cv2.rectangle(im12_red, patch_corners[0][::-1], patch_corners[-1][::-1], (0, 1, 1), 10)
     else:
         pass
@@ -601,12 +606,12 @@ for _ in range(1000):
 plots(im12_red, figsize=(6, 6))
 
 
-# In[148]:
+# In[31]:
 
 plots(im12, figsize=(6, 6))
 
 
-# In[ ]:
+# In[32]:
 
-
+plots(im12_full, figsize=(6, 6))
 
