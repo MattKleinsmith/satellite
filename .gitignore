@@ -1,0 +1,15 @@
+spacenet
+data/
+input/
+mask/
+subm/
+test/
+train/
+train_all/
+valid/
+weights/
+*.ipynb
+*.html
+*.txt
+*.png
+*.csv
