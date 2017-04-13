@@ -150,7 +150,7 @@ print(len(glob('test/*.tif')))
 sorted(glob('test/*.tif'))[:8]
 
 
-# ## Split train_all into train and valid
+# ## [Overengineered] Split train_all into train and valid
 
 # We have 25 satellite images.
 # 
