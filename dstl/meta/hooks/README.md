@@ -9,10 +9,12 @@ To clear them from your .py file, add the following code to your `~/.bashrc` and
 ```bash
 export satellite_repo="<the directory where you git cloned>"
 export jupyter_clearer=$satellite_repo"dstl/meta/hooks/clear_jupyter_cell_labels.py"
-function ga(){
-    python3 $jupyter_clearer `pwd`/$1
-    git add $1
-}
+function ga(){                                                                                       
+    if [[ $1 == *.py ]]; then                                                                        
+        python3 $jupyter_clearer `pwd`/$1                                                            
+    fi                                                                                               
+    git add $1                                                                                       
+}  
 ```
 
 "ga" stands for "git add". Feel free to remove the `git add` line if you just want to use the clearer.
