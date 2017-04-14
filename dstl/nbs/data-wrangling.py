@@ -20,10 +20,10 @@
 # │   │   │   ├── 6010_1_2_P.tif
 # │   │   │   └── ...
 # │   │   ├── targets
-# │   │   │   ├── 6010_1_2.tif
-# │   │   │   ├── 6010_1_2_A.tif
-# │   │   │   ├── 6010_1_2_M.tif
-# │   │   │   ├── 6010_1_2_P.tif
+# │   │   │   ├── 6010_1_2.png
+# │   │   │   ├── 6010_1_2_A.png
+# │   │   │   ├── 6010_1_2_M.png
+# │   │   │   ├── 6010_1_2_P.png
 # │   │   │   └── ...
 # │   │   └── test
 # │   └── tiles
@@ -75,7 +75,10 @@ get_ipython().magic('matplotlib inline')
 
 
 ROOT = '../'
-TRAIN_BIG = ROOT + 'data/big/inputs/train_all/'
+INPUTS_BIG = ROOT + 'data/big/inputs/'
+TARGETS_BIG = ROOT + 'data/big/targets/'
+INPUTS_TILES = ROOT + 'data/tiles/224x224/stride_full/inputs/train_all/'
+TARGETS_TILES = ROOT + 'data/tiles/224x224/stride_full/targets/masks_train_all/'
 WKT_PATH = ROOT + 'data/meta/train_wkt_v4.csv'
 GRID_PATH = ROOT + 'data/meta/grid_sizes.csv'
 TILE_LEN = 224
@@ -138,7 +141,7 @@ def look_good(matrices):
 ##############################################################################
 
 def id2im(im_id):
-    path = TRAIN_BIG+im_id+'.tif'
+    path = INPUTS_BIG + im_id + '.tif'
     im = tiff.imread(path)
     im = np.rollaxis(im, 0, 3)  # Channels last for tf and plt
     im = (im - im.min()) / (im.max() - im.min())
@@ -196,6 +199,17 @@ def polygons2mask(polygons, h, w):
     cv2.fillPoly(mask, get_exteriors(polygons), 255)
     cv2.fillPoly(mask, get_interiors(polygons), 0)  # This line does nothing?
     return mask
+
+
+def saveim(im, ext, folder, im_id, i=''):
+    if i != '': i = '_%03d' % i  # "001.png" instead of "1.png"
+    path = folder + im_id + i + ext
+    if ext == '.png':
+        Image.fromarray(im).save(path)
+    elif ext == '.tif':
+        tiff.imsave(path, im)
+    else:
+        raise Exception('Unsupported file type')
 
 
 # ## Load image
@@ -263,7 +277,7 @@ mask_anchor_points = [(r*TILE_LEN, c*TILE_LEN) for r in range(tiles_per_col)
                                                for c in range(tiles_per_row)]
 
 mask2 = mask.copy()
-mask2 = cv2.cvtColor(mask2*255, cv2.COLOR_GRAY2RGB)/255
+mask2 = cv2.cvtColor(mask2, cv2.COLOR_GRAY2RGB)/255
 for r, c in mask_anchor_points:
     r2, c2 = (r+TILE_LEN, c+TILE_LEN)
     cv2.rectangle(mask2, (c, r), (c2, r2), GRID_COLOR, GRID_THICK)
@@ -280,12 +294,11 @@ plot(mask_tiles[:tiles_per_row], f=(tiles_per_row, 1), r=1, c=tiles_per_row)
 # ## Save
 
 
-#Image.fromarray(mask).save('test.png')
+saveim(mask, '.png', TARGETS_BIG, IM_ID)
 
-
-# In[ ]:
-
-#mask
-#tiles
-#mask_tiles
+for i, mask_tile in enumerate(mask_tiles):
+    saveim(mask_tile, '.png', TARGETS_TILES, IM_ID, i)
+    
+for i, tile in enumerate(tiles):
+    saveim(tile, '.tif', INPUTS_TILES, IM_ID, i)
 

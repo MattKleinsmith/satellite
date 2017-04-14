@@ -8,4 +8,4 @@ ignore/
 *.geojson
 *.DS_Store
 *.hdf5
-targets/*.png
+*.png
