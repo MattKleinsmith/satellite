@@ -53,7 +53,6 @@
 
 # ## Globals
 
-# In[277]:
 
 ROOT = '../'
 TRAIN_BIG = ROOT + 'data/big/inputs/train_all/'
@@ -72,7 +71,6 @@ GRIDS = pd.read_csv(GRID_PATH, names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
 
 # ## Dependencies
 
-# In[278]:
 
 from glob import glob
 
@@ -190,14 +188,12 @@ def look_good(matrices):
 
 # ## Load image
 
-# In[211]:
 
 im = id2im(IM_ID)
 
 plot(im)
 
 
-# In[212]:
 
 h, w = im.shape[:2]
 
@@ -207,7 +203,6 @@ print(im.min(), im.max())
 
 # ## Create masks
 
-# In[279]:
 
 polygons = get_polygons(IM_ID, CLASS_ID)
 mask = polygons2mask(polygons, h, w)
@@ -224,7 +219,6 @@ plot([im, mask], c=2, f=16)
 # - Get the anchor point of each tile (i.e. the top-left corner of the tile)
 # - Repeat for all images
 
-# In[215]:
 
 tiles_per_col = h // TILE_LEN
 tiles_per_row = w // TILE_LEN
@@ -232,7 +226,6 @@ tiles_per_row = w // TILE_LEN
 print(tiles_per_col, tiles_per_row)
 
 
-# In[280]:
 
 anchor_points = [(r*TILE_LEN, c*TILE_LEN) for r in range(tiles_per_col)
                                           for c in range(tiles_per_row)]
@@ -244,7 +237,6 @@ for r, c in anchor_points:
 plot(im2)
 
 
-# In[268]:
 
 tiles = [im[r:r+TILE_LEN, c:c+TILE_LEN] for r, c in anchor_points]
 
@@ -254,7 +246,6 @@ plot(tiles[:tiles_per_row], f=(tiles_per_row, 1), r=1, c=tiles_per_row)
 
 # ### Create tiles for mask
 
-# In[281]:
 
 mask_anchor_points = [(r*TILE_LEN, c*TILE_LEN) for r in range(tiles_per_col)
                                                for c in range(tiles_per_row)]
@@ -267,7 +258,6 @@ for r, c in mask_anchor_points:
 plot(mask2)
 
 
-# In[219]:
 
 mask_tiles = [mask[r:r+TILE_LEN, c:c+TILE_LEN] for r, c in mask_anchor_points]
 
@@ -291,7 +281,6 @@ plot(mask_tiles[:tiles_per_row], f=(tiles_per_row, 1), r=1, c=tiles_per_row)
 # 
 # 
 
-# In[2]:
 
 IM_ID = '6120_2_0'
 PATCH_LEN = 200
@@ -299,7 +288,6 @@ PATCH_LEN = 200
 
 # ### Load image
 
-# In[3]:
 
 im = tiff.imread('train_all/inputs/{}.tif'.format(IM_ID))
 im = np.rollaxis(im, 0, 3)
@@ -308,7 +296,6 @@ im = (im - im.min()) / (im.max() - im.min())
 plots(im, figsize=(6, 6))
 
 
-# In[4]:
 
 im2 = im.copy()
 n_patches = 4
@@ -316,7 +303,6 @@ cv2.rectangle(im2, (10, 15), (n_patches*PATCH_LEN, PATCH_LEN), (1, 0, 0), 10)
 plots(im2, figsize=(6, 6))
 
 
-# In[5]:
 
 imgs = [im[:PATCH_LEN, k*PATCH_LEN:(k+1)*PATCH_LEN, :] for k in range(n_patches)]
 
@@ -325,7 +311,6 @@ plots(imgs, cols=n_patches, figsize=(16, 4))
 
 # ### Create validation set
 
-# In[6]:
 
 FRACTION_VALID = 0.20
 N_BARS = 4
@@ -333,7 +318,6 @@ N_BARS = 4
 
 # #### Naive validation sampling
 
-# In[7]:
 
 h, w = im.shape[:2]
 r_max = h - PATCH_LEN
@@ -348,7 +332,6 @@ cv2.rectangle(im2, (10, 15), (c_max, r_max), (1, 0, 0), 10)
 plots(im2, figsize=(6, 6))
 
 
-# In[8]:
 
 im3 = im2.copy()
 patches = []
@@ -363,7 +346,6 @@ plots(im3, figsize=(6, 6))
 
 # #### Create horizontal bars
 
-# In[9]:
 
 h, w = im.shape[:2]
 image_area = h * w
@@ -385,7 +367,6 @@ print(patch_area)
 print(patches_per_bar)
 
 
-# In[10]:
 
 r_min_1 = PATCH_LEN*3
 r_max_1 = h - PATCH_LEN*4
@@ -404,7 +385,6 @@ cv2.rectangle(im4, (c_min, r_min_1), (c_max, r_max_1), (1, 1, 1), 10)
 plots(im4, figsize=(6, 6))
 
 
-# In[11]:
 
 im5 = im4.copy()
 bar_anchors = []
@@ -423,7 +403,6 @@ for _ in range(N_BARS//2):
 plots(im5, figsize=(6, 6))
 
 
-# In[12]:
 
 im6 = im5.copy()
 im10 = im.copy()
@@ -440,14 +419,12 @@ for r_bar, c_bar in bar_anchors:
 plots(im6, figsize=(6, 6))
 
 
-# In[13]:
 
 plots(patches_val, rows=N_BARS//2, cols=patches_per_bar, figsize=(15, N_BARS//2))
 
 
 # #### Create vertical bars
 
-# In[14]:
 
 c_min_1 = PATCH_LEN*3
 c_max_1 = w - PATCH_LEN*4
@@ -466,7 +443,6 @@ cv2.rectangle(im7, (c_min_1, r_min), (c_max_1, r_max), (1, 1, 1), 10)
 plots(im7, figsize=(6, 6))
 
 
-# In[15]:
 
 im8 = im7.copy()
 for _ in range(N_BARS//2):
@@ -484,7 +460,6 @@ for _ in range(N_BARS//2):
 plots(im8, figsize=(6, 6))
 
 
-# In[16]:
 
 im9 = im8.copy()
 for r_bar, c_bar in bar_anchors[2:]:
@@ -500,17 +475,14 @@ plots(im9, figsize=(6, 6))
 
 # #### Validation patches
 
-# In[17]:
 
 plots(im10, figsize=(6, 6))
 
 
-# In[18]:
 
 plots(patches_val, rows=N_BARS, cols=patches_per_bar, figsize=(15, N_BARS))
 
 
-# In[19]:
 
 plots(patches_val[7], figsize=(6, 6))
 
@@ -519,7 +491,6 @@ plots(patches_val[7], figsize=(6, 6))
 
 # ### Create training set
 
-# In[20]:
 
 plots(im10, figsize=(6, 6))
 
@@ -528,7 +499,6 @@ plots(im10, figsize=(6, 6))
 
 # ##### Start with one validation bar
 
-# In[21]:
 
 bar_anchor = bar_anchors[1]
 
@@ -544,7 +514,6 @@ print(c_min, c_max)
 print(r_min, r_max)
 
 
-# In[22]:
 
 im11_red = im10.copy()
 im11 = im10.copy()
@@ -572,28 +541,24 @@ for _ in range(300):
 plots(im11_red, figsize=(6, 6))
 
 
-# In[23]:
 
 plots(im11, figsize=(6, 6))
 
 
 # ##### Calculate it for all validation bars
 
-# In[24]:
 
 x = [(1, 2), (3, 4)]
 for i, p in enumerate(x):
     print(i, p)
 
 
-# In[25]:
 
 x = [(1, 2), (3, 4)]
 for i, (a, b) in enumerate(x):
     print(i, a, b)
 
 
-# In[26]:
 
 im12_red = im10.copy()
 im12 = im10.copy()
@@ -635,12 +600,10 @@ for _ in range(300):
 plots(im12_red, figsize=(6, 6))
 
 
-# In[27]:
 
 plots(im12, figsize=(6, 6))
 
 
-# In[28]:
 
 im12_red = im10.copy()
 im12 = im10.copy()
@@ -682,12 +645,10 @@ for _ in range(400):
 plots(im12_red, figsize=(6, 6))
 
 
-# In[29]:
 
 plots(im12, figsize=(6, 6))
 
 
-# In[30]:
 
 im12_full = im10_full.copy()
 im12_red = im10.copy()
@@ -731,12 +692,10 @@ for _ in range(1000):
 plots(im12_red, figsize=(6, 6))
 
 
-# In[31]:
 
 plots(im12, figsize=(6, 6))
 
 
-# In[32]:
 
 plots(im12_full, figsize=(6, 6))
 
