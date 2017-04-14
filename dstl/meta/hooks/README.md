@@ -1,20 +1,50 @@
-# Clearing Jupyter cell labels
+# Generating .py files from .ipynb files
 
-![docs/assets/clear_jupyter_labels.png](../docs/assets/clear_jupyter_labels.png)
+To do this, append the following to your `~/.jupyter/jupyter_notebook_config.py` file.
 
-Clearing Jupyter cell labels before commiting helps declutter commits.
+```python
+import io
+import os
+import re
+import shutil
 
-To clear them from your .py file, add the following code to your `~/.bashrc` and type `ga your-file.py` in a terminal.
+from notebook.utils import to_api_path
 
-```bash
-export satellite_repo="<the directory where you git cloned>"
-export jupyter_clearer=$satellite_repo"dstl/meta/hooks/clear_jupyter_cell_labels.py"
-function ga(){                                                                                       
-    if [[ $1 == *.py ]]; then                                                                        
-        python3 $jupyter_clearer `pwd`/$1                                                            
-    fi                                                                                               
-    git add $1                                                                                       
-}  
+
+_script_exporter = None
+
+
+def script_post_save(model, os_path, contents_manager, **kwargs):
+    """convert notebooks to Python script after save with nbconvert
+
+    replaces `ipython notebook --script`
+    """
+    from nbconvert.exporters.script import ScriptExporter
+
+    if model['type'] != 'notebook':
+        return
+
+    global _script_exporter
+    if _script_exporter is None:
+        _script_exporter = ScriptExporter(parent=contents_manager)
+    log = contents_manager.log
+
+    # save .py file
+    base, ext = os.path.splitext(os_path)
+    script, resources = _script_exporter.from_filename(os_path)
+    script_fname = base + resources.get('output_extension', '.txt')
+    api_path = to_api_path(script_fname, contents_manager.root_dir)
+    with io.open(script_fname, 'w', encoding='utf-8') as f:
+        f.write(script)
+    tmp = api_path[:-3] + '_test.py'
+    with open(api_path, 'r', encoding='utf8') as fin,
+         open(tmp, 'w', encoding='utf8') as fout:
+        for line in fin:
+            if not re.match('# In\[[0-9]*\]:\n', line):
+                print(line, end='', file=fout)
+    log.info("Saving script /%s", api_path)
+    shutil.move(tmp, api_path)
+
+
+c.FileContentsManager.post_save_hook = script_post_save
 ```
-
-"ga" stands for "git add". Feel free to remove the `git add` line if you just want to use the clearer.
