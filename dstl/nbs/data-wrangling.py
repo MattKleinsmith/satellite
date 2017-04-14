@@ -74,19 +74,36 @@ get_ipython().magic('matplotlib inline')
 # ## Globals
 
 
+##############################
+## Globals you might change ##
+##############################
+
 ROOT = '../'
-INPUTS_BIG = ROOT + 'data/big/inputs/'
-TARGETS_BIG = ROOT + 'data/big/targets/'
-INPUTS_TILES = ROOT + 'data/tiles/224x224/stride_full/inputs/train_all/'
-TARGETS_TILES = ROOT + 'data/tiles/224x224/stride_full/targets/masks_train_all/'
-WKT_PATH = ROOT + 'data/meta/train_wkt_v4.csv'
-GRID_PATH = ROOT + 'data/meta/grid_sizes.csv'
 TILE_LEN = 224
 IM_ID = '6120_2_0'
 CLASS_ID = 1  # Buildings
+VALID_PORTION = 0.20
 
 GRID_COLOR = (0, 0.8, 0)
 GRID_THICK = 10
+
+#######################################
+## Globals you probably won't change ##
+#######################################
+
+BIG = ROOT + 'data/big/'
+TILES = ROOT + 'data/tiles/224x224/stride_full/'
+META = ROOT + 'data/meta/'
+INPUTS_BIG = BIG + 'inputs/'
+TARGETS_BIG = BIG + 'targets/'
+INPUTS_TILES_ALL = TILES + 'inputs/train_all/'
+TARGETS_TILES_ALL = TILES + 'targets/masks_train_all/'
+INPUTS_TILES_TRN = TILES + 'inputs/train/'
+TARGETS_TILES_TRN = TILES + 'targets/masks_train/'
+INPUTS_TILES_VAL = TILES + 'inputs/train_valid/'
+TARGETS_TILES_VAL = TILES + 'targets/masks_train_valid/'
+WKT_PATH = META + 'train_wkt_v4.csv'
+GRID_PATH = META + 'grid_sizes.csv'
 
 WKTS = pd.read_csv(WKT_PATH)
 GRIDS = pd.read_csv(GRID_PATH, names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
@@ -138,13 +155,66 @@ def look_good(matrices):
         return _scale_percentile(matrices)
     return [_scale_percentile(m) for m in matrices]
 
-##############################################################################
+
+def print_im_stats(imgs):
+    print('dtype:', [im.dtype for im in imgs])
+    print('shape:', [im.shape for im in imgs])
+    print('mean:', [im.mean() for im in imgs])
+    print('std:', [im.std() for im in imgs])
+    print('min:', [im.min() for im in imgs])
+    print('max:', [im.max() for im in imgs])
+    for im in imgs:
+        print('top-left pixel:', im[0][0])
+    plot(imgs, c=len(imgs), f=16)
+    
+
+def subset_tiles_with_blanks(tiles, indices):
+    blank = np.zeros_like(tiles[0])
+    tiles_subset = []
+    for i, tile in enumerate(tiles):
+        tile = tiles[i] if i in indices else blank
+        tiles_subset.append(tile)
+    return tiles_subset
+
+
+def tiles2im(tiles, h, w):
+    gray = tiles[0].ndim == 2
+    d = 1 if gray else 3
+    canvas = np.zeros((h, w, d))
+    tile_len = tiles[0].shape[0]
+    tiles_per_col = h // tile_len
+    tiles_per_row = w // tile_len
+    i = 0
+    for r in range(tiles_per_col):
+        for c in range(tiles_per_row):
+            tile = tiles[i]
+            if gray: tile = np.expand_dims(tile, -1)
+            canvas[r*tile_len:(r+1)*tile_len,
+                   c*tile_len:(c+1)*tile_len, :] = tile
+            i += 1
+    if gray:
+        return canvas[:, :, 0]
+    else:
+        return canvas
+
+#############################################################################
+
+def loadpng(path):
+    return np.array(Image.open(path))
+
+
+def loadtif(path, roll=False, unit_norm=False):
+    im = tiff.imread(path)
+    if roll:
+        im = np.rollaxis(im, 0, 3)  # Channels last for tf and plt
+    if unit_norm:
+        im = (im - im.min()) / (im.max() - im.min())  # min: 0.0, max: 1.0
+    return im
+
 
 def id2im(im_id):
     path = INPUTS_BIG + im_id + '.tif'
-    im = tiff.imread(path)
-    im = np.rollaxis(im, 0, 3)  # Channels last for tf and plt
-    im = (im - im.min()) / (im.max() - im.min())
+    im = loadtif(path, roll=True, unit_norm=True)
     return im
 
 
@@ -210,6 +280,11 @@ def saveim(im, ext, folder, im_id, i=''):
         tiff.imsave(path, im)
     else:
         raise Exception('Unsupported file type')
+        
+
+def savetiles(tiles, ext, folder, im_id):
+    for i, tile in enumerate(tiles):
+        saveim(tile, ext, folder, im_id, i)
 
 
 # ## Load image
@@ -227,7 +302,7 @@ print(h, w)
 print(im.min(), im.max())
 
 
-# ## Create masks
+# ## Create mask
 
 
 polygons = get_polygons(IM_ID, CLASS_ID)
@@ -291,14 +366,59 @@ print(len(mask_tiles))
 plot(mask_tiles[:tiles_per_row], f=(tiles_per_row, 1), r=1, c=tiles_per_row)
 
 
+# ## Split tiles into train and valid
+
+
+# Get indices
+n_tiles = len(tiles)
+indices_all = range(n_tiles)
+n_val = int(n_tiles * VALID_PORTION)
+indices_val = sorted(np.random.choice(indices_all, n_val, replace=False))
+
+print(n_tiles, VALID_PORTION, n_val, len(indices_val), len(tiles_val))
+
+
+
+# Get tiles
+tiles_val = [tiles[i] for i in indices_val]
+mask_tiles_val = [mask_tiles[i] for i in indices_val]
+
+# Print and plot to test
+tiles_im = tiles2im(tiles, h, w)
+tiles_with_blanks_val = subset_tiles_with_blanks(tiles, indices_val)
+tiles_im_val = tiles2im(tiles_with_blanks_val, h, w)
+mask_tiles_im = tiles2im(mask_tiles, h, w)
+mask_tiles_with_blanks_val = subset_tiles_with_blanks(mask_tiles, indices_val)
+mask_tiles_im_val = tiles2im(mask_tiles_with_blanks_val, h, w)
+imgs = [tiles_im, mask_tiles_im, tiles_im_val, mask_tiles_im_val]
+plot(imgs, c=len(imgs), f=16); plt.show()
+imgs = tiles_with_blanks_val[:tiles_per_row] + mask_tiles_with_blanks_val[:tiles_per_row]
+plot(imgs, c=tiles_per_row, r=2, f=(16, 2))
+
+
 # ## Save
 
 
 saveim(mask, '.png', TARGETS_BIG, IM_ID)
+savetiles(tiles, '.tif', INPUTS_TILES_ALL, IM_ID)
+savetiles(mask_tiles, '.png', TARGETS_TILES_ALL, IM_ID)
 
-for i, mask_tile in enumerate(mask_tiles):
-    saveim(mask_tile, '.png', TARGETS_TILES, IM_ID, i)
-    
-for i, tile in enumerate(tiles):
-    saveim(tile, '.tif', INPUTS_TILES, IM_ID, i)
+
+# In[ ]:
+
+savetiles(mask_tiles_trn, '.png', TARGETS_TILES_TRN, IM_ID)
+savetiles(tiles_trn, '.tif', INPUTS_TILES_TRN, IM_ID)
+
+savetiles(mask_tiles_val, '.png', TARGETS_TILES_VAL, IM_ID)
+savetiles(tiles_val, '.tif', INPUTS_TILES_VAL, IM_ID)
+
+
+# ### Test save and load functions
+
+
+imgs = [loadtif(INPUTS_BIG+IM_ID+'.tif', roll=True, unit_norm=True),
+        loadtif(INPUTS_TILES_ALL+IM_ID+'_000.tif'),
+        loadpng(TARGETS_BIG+IM_ID+'.png'),
+        loadpng(TARGETS_TILES_ALL+IM_ID+'_000.png')]
+print_im_stats(imgs)
 
