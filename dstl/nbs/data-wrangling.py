@@ -14,32 +14,35 @@
 # │   │   └── sample_submission.csv
 # │   ├── big
 # │   │   ├── inputs
-# │   │   │   ├── test
-# │   │   │   └── train_all
-# │   │   │       ├── 6010_1_2.tif
-# │   │   │       ├── 6010_1_2_A.tif
-# │   │   │       ├── 6010_1_2_M.tif
-# │   │   │       ├── 6010_1_2_P.tif
-# │   │   │       └── ...
-# │   │   └── targets
-# │   │       └── masks_train_all
+# │   │   │   ├── 6010_1_2.tif
+# │   │   │   ├── 6010_1_2_A.tif
+# │   │   │   ├── 6010_1_2_M.tif
+# │   │   │   ├── 6010_1_2_P.tif
+# │   │   │   └── ...
+# │   │   ├── targets
+# │   │   │   ├── 6010_1_2.tif
+# │   │   │   ├── 6010_1_2_A.tif
+# │   │   │   ├── 6010_1_2_M.tif
+# │   │   │   ├── 6010_1_2_P.tif
+# │   │   │   └── ...
+# │   │   └── test
 # │   └── tiles
 # │       └── 224x224
 # │           └── stride_full
 # │               ├── inputs
-# │               │   ├── test
 # │               │   ├── train
 # │               │   ├── train_all
 # │               │   └── valid
-# │               ├── results
-# │               │   ├── kaggle_submissions
-# │               │   ├── masks_test_predictions
-# │               │   ├── masks_train_predictions
-# │               │   └── masks_valid_predictions
-# │               └── targets
-# │                   ├── masks_train
-# │                   ├── masks_train_all
-# │                   └── masks_valid
+# │               ├── targets
+# │               │   ├── masks_train
+# │               │   ├── masks_train_all
+# │               │   └── masks_valid
+# │               ├── test
+# │               └── results
+# │                   ├── kaggle_submissions
+# │                   ├── masks_test_predictions
+# │                   ├── masks_train_predictions
+# │                   └── masks_valid_predictions
 # ├── lib
 # │   └── weights
 # └── nbs
@@ -50,6 +53,23 @@
 # 
 # 
 # See **kaggle-data-to-our-format--incomplete-but-useful.py** for hints on setting up our data folder format (i.e. putting A, M, P, and RGB in the same folder). TODO: Automate this for new users.
+
+# ## Dependencies
+
+
+from glob import glob
+
+import pandas as pd
+import numpy as np
+import tifffile as tiff
+from PIL import Image
+import cv2
+from shapely.geometry import MultiPolygon, Polygon
+import shapely.wkt
+import shapely.affinity
+import matplotlib.pyplot as plt
+get_ipython().magic('matplotlib inline')
+
 
 # ## Globals
 
@@ -69,21 +89,12 @@ WKTS = pd.read_csv(WKT_PATH)
 GRIDS = pd.read_csv(GRID_PATH, names=['ImageId', 'Xmax', 'Ymin'], skiprows=1)
 
 
-# ## Dependencies
+# ## Functions
 
 
-from glob import glob
-
-import pandas as pd
-import tifffile as tiff
-import numpy as np
-import cv2
-from shapely.geometry import MultiPolygon, Polygon
-import shapely.wkt
-import shapely.affinity
-import matplotlib.pyplot as plt
-get_ipython().magic('matplotlib inline')
-
+###################
+## Visualization ##
+###################
 
 def plots(imgs, figsize=(12, 12), rows=1, cols=1,
           interp=None, titles=None, cmap='gray'):
@@ -108,6 +119,23 @@ def plot(im, f=6, r=1, c=1):
     fs = f if isinstance(f, tuple) else (f, f)
     plots(im, figsize=fs, rows=r, cols=c)
 
+    
+def look_good(matrices):
+    def _scale_percentile(matrix):
+        w, h, d = matrix.shape
+        matrix = np.reshape(matrix, [w * h, d]).astype(np.float64)
+        # Get 2nd and 98th percentile
+        mins = np.percentile(matrix, 1, axis=0)
+        maxs = np.percentile(matrix, 99, axis=0) - mins
+        matrix = (matrix - mins[None, :]) / maxs[None, :]
+        matrix = np.reshape(matrix, [w, h, d])
+        matrix = matrix.clip(0, 1)
+        return matrix
+    if not isinstance(matrices, list):
+        return _scale_percentile(matrices)
+    return [_scale_percentile(m) for m in matrices]
+
+##############################################################################
 
 def id2im(im_id):
     path = TRAIN_BIG+im_id+'.tif'
@@ -165,25 +193,9 @@ def get_interiors(polygons):
 def polygons2mask(polygons, h, w):
     mask = np.zeros((h, w), np.uint8)
     if not polygons: return mask
-    cv2.fillPoly(mask, get_exteriors(polygons), 1)
-    cv2.fillPoly(mask, get_interiors(polygons), 0)  # This line seems to do nothing.
+    cv2.fillPoly(mask, get_exteriors(polygons), 255)
+    cv2.fillPoly(mask, get_interiors(polygons), 0)  # This line does nothing?
     return mask
-
-
-def look_good(matrices):
-    def _scale_percentile(matrix):
-        w, h, d = matrix.shape
-        matrix = np.reshape(matrix, [w * h, d]).astype(np.float64)
-        # Get 2nd and 98th percentile
-        mins = np.percentile(matrix, 1, axis=0)
-        maxs = np.percentile(matrix, 99, axis=0) - mins
-        matrix = (matrix - mins[None, :]) / maxs[None, :]
-        matrix = np.reshape(matrix, [w, h, d])
-        matrix = matrix.clip(0, 1)
-        return matrix
-    if not isinstance(matrices, list):
-        return _scale_percentile(matrices)
-    return [_scale_percentile(m) for m in matrices]
 
 
 # ## Load image
@@ -263,4 +275,17 @@ mask_tiles = [mask[r:r+TILE_LEN, c:c+TILE_LEN] for r, c in mask_anchor_points]
 
 print(len(mask_tiles))
 plot(mask_tiles[:tiles_per_row], f=(tiles_per_row, 1), r=1, c=tiles_per_row)
+
+
+# ## Save
+
+
+#Image.fromarray(mask).save('test.png')
+
+
+# In[ ]:
+
+#mask
+#tiles
+#mask_tiles
 
