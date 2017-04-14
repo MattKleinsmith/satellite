@@ -1,8 +1,8 @@
-spacenet
+spacenet/
+ignore/
 *.ipynb
 *.html
 *.txt
-*.png
 *.csv
 *.tif
 *.geojson
