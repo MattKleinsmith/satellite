@@ -40,7 +40,7 @@ def script_post_save(model, os_path, contents_manager, **kwargs):
     with open(api_path, 'r', encoding='utf8') as fin,
          open(tmp, 'w', encoding='utf8') as fout:
         for line in fin:
-            if not re.match('# In\[[0-9]*\]:\n', line):
+            if not re.match('^# In\[.*\]:\n$', line):
                 print(line, end='', file=fout)
     log.info("Saving script /%s", api_path)
     shutil.move(tmp, api_path)

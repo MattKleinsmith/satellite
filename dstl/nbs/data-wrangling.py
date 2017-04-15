@@ -96,12 +96,14 @@ TILES = ROOT + 'data/tiles/224x224/stride_full/'
 META = ROOT + 'data/meta/'
 INPUTS_BIG = BIG + 'inputs/'
 TARGETS_BIG = BIG + 'targets/'
-INPUTS_TILES_ALL = TILES + 'inputs/train_all/'
-TARGETS_TILES_ALL = TILES + 'targets/masks_train_all/'
-INPUTS_TILES_TRN = TILES + 'inputs/train/'
-TARGETS_TILES_TRN = TILES + 'targets/masks_train/'
-INPUTS_TILES_VAL = TILES + 'inputs/train_valid/'
-TARGETS_TILES_VAL = TILES + 'targets/masks_train_valid/'
+INPUTS_TILES = TILES + 'inputs/'
+TARGETS_TILES = TILES + 'targets/'
+INPUTS_TILES_ALL = INPUTS_TILES + 'train_all/'
+TARGETS_TILES_ALL = TARGETS_TILES + 'masks_train_all/'
+INPUTS_TILES_TRN = INPUTS_TILES + 'train/'
+TARGETS_TILES_TRN = TARGETS_TILES + 'masks_train/'
+INPUTS_TILES_VAL = INPUTS_TILES + 'valid/'
+TARGETS_TILES_VAL = TARGETS_TILES + 'masks_valid/'
 WKT_PATH = META + 'train_wkt_v4.csv'
 GRID_PATH = META + 'grid_sizes.csv'
 
@@ -135,9 +137,9 @@ def plots(imgs, figsize=(12, 12), rows=1, cols=1,
         plt.axis('off')
 
 
-def plot(im, f=6, r=1, c=1):
+def plot(im, f=6, r=1, c=1, t=None):
     fs = f if isinstance(f, tuple) else (f, f)
-    plots(im, figsize=fs, rows=r, cols=c)
+    plots(im, figsize=fs, rows=r, cols=c, titles=t)
 
     
 def look_good(matrices):
@@ -371,17 +373,22 @@ plot(mask_tiles[:tiles_per_row], f=(tiles_per_row, 1), r=1, c=tiles_per_row)
 
 # Get indices
 n_tiles = len(tiles)
-indices_all = range(n_tiles)
+indices = range(n_tiles)
 n_val = int(n_tiles * VALID_PORTION)
-indices_val = sorted(np.random.choice(indices_all, n_val, replace=False))
+indices_val = sorted(np.random.choice(indices, n_val, replace=False))
+indices_trn = [i for i in indices if i not in indices_val]
 
-print(n_tiles, VALID_PORTION, n_val, len(indices_val), len(tiles_val))
+assert len(indices_trn) + len(indices_val) == len(indices)
+assert len(indices_val) == int(len(indices) * VALID_PORTION)
 
 
 
 # Get tiles
+tiles_trn = [tiles[i] for i in indices_trn]
+mask_tiles_trn = [mask_tiles[i] for i in indices_trn]
 tiles_val = [tiles[i] for i in indices_val]
 mask_tiles_val = [mask_tiles[i] for i in indices_val]
+
 
 # Print and plot to test
 tiles_im = tiles2im(tiles, h, w)
@@ -391,7 +398,7 @@ mask_tiles_im = tiles2im(mask_tiles, h, w)
 mask_tiles_with_blanks_val = subset_tiles_with_blanks(mask_tiles, indices_val)
 mask_tiles_im_val = tiles2im(mask_tiles_with_blanks_val, h, w)
 imgs = [tiles_im, mask_tiles_im, tiles_im_val, mask_tiles_im_val]
-plot(imgs, c=len(imgs), f=16); plt.show()
+plot(imgs, c=len(imgs), f=16, t=['im', 'msk', 'im_val', 'msk_val']); plt.show()
 imgs = tiles_with_blanks_val[:tiles_per_row] + mask_tiles_with_blanks_val[:tiles_per_row]
 plot(imgs, c=tiles_per_row, r=2, f=(16, 2))
 
@@ -404,13 +411,12 @@ savetiles(tiles, '.tif', INPUTS_TILES_ALL, IM_ID)
 savetiles(mask_tiles, '.png', TARGETS_TILES_ALL, IM_ID)
 
 
-# In[ ]:
 
-savetiles(mask_tiles_trn, '.png', TARGETS_TILES_TRN, IM_ID)
 savetiles(tiles_trn, '.tif', INPUTS_TILES_TRN, IM_ID)
+savetiles(mask_tiles_trn, '.png', TARGETS_TILES_TRN, IM_ID)
 
-savetiles(mask_tiles_val, '.png', TARGETS_TILES_VAL, IM_ID)
 savetiles(tiles_val, '.tif', INPUTS_TILES_VAL, IM_ID)
+savetiles(mask_tiles_val, '.png', TARGETS_TILES_VAL, IM_ID)
 
 
 # ### Test save and load functions
@@ -421,4 +427,6 @@ imgs = [loadtif(INPUTS_BIG+IM_ID+'.tif', roll=True, unit_norm=True),
         loadpng(TARGETS_BIG+IM_ID+'.png'),
         loadpng(TARGETS_TILES_ALL+IM_ID+'_000.png')]
 print_im_stats(imgs)
+
+assert np.array_equal(imgs[0][0][0], imgs[1][0][0])  # Top-left pixel
 
