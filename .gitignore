@@ -1,6 +1,9 @@
 spacenet/
 ignore/
 *.ipynb
+!data-wrangling--visualization.ipynb
+data-wrangling--visualization.py
+*Copy*
 *.html
 *.txt
 *.csv
