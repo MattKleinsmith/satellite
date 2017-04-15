@@ -12,3 +12,4 @@ data-wrangling--visualization.py
 *.DS_Store
 *.hdf5
 *.png
+*.npy
