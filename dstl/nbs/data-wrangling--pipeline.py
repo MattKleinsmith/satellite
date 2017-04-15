@@ -31,18 +31,17 @@
 # │           └── stride_full
 # │               ├── inputs
 # │               │   ├── train
-# │               │   ├── train_all
 # │               │   └── valid
 # │               ├── targets
-# │               │   ├── masks_train
-# │               │   ├── masks_train_all
-# │               │   └── masks_valid
+# │               │   ├── train
+# │               │   └── valid
+# │               ├── indices
 # │               ├── test
 # │               └── results
 # │                   ├── kaggle_submissions
-# │                   ├── masks_test_predictions
-# │                   ├── masks_train_predictions
-# │                   └── masks_valid_predictions
+# │                   ├── test
+# │                   ├── train
+# │                   └── valid
 # ├── lib
 # │   └── weights
 # └── nbs
@@ -50,7 +49,6 @@
 # ```
 # 
 # ---
-# 
 # TODO: Automate the conversion from the kaggle directory tree to this directory tree.
 
 # ## Dependencies
@@ -81,23 +79,25 @@ TILE_LEN = 224
 CLASS_ID = 1  # Buildings
 VALID_PORTION = 0.20
 
+STRIDE = 'full'  # 'full', 'half', 'fourth'  # only 'full' works right now
+
 #######################################
 ## Globals you probably won't change ##
 #######################################
 
-BIG = ROOT + 'data/big/'
-TILES = ROOT + 'data/tiles/224x224/stride_full/'
-META = ROOT + 'data/meta/'
+DATA = ROOT + 'data/'
+BIG = DATA + 'big/'
+TILES = DATA + 'tiles/{0}x{0}/stride_{1}/'.format(TILE_LEN, STRIDE)
+META = DATA + 'meta/'
 INPUTS_BIG = BIG + 'inputs/'
 TARGETS_BIG = BIG + 'targets/'
 INPUTS_TILES = TILES + 'inputs/'
 TARGETS_TILES = TILES + 'targets/'
-INPUTS_TILES_ALL = INPUTS_TILES + 'train_all/'
-TARGETS_TILES_ALL = TARGETS_TILES + 'masks_train_all/'
+INDICES_TILES = TILES + 'indices/'
 INPUTS_TILES_TRN = INPUTS_TILES + 'train/'
-TARGETS_TILES_TRN = TARGETS_TILES + 'masks_train/'
+TARGETS_TILES_TRN = TARGETS_TILES + 'train/'
 INPUTS_TILES_VAL = INPUTS_TILES + 'valid/'
-TARGETS_TILES_VAL = TARGETS_TILES + 'masks_valid/'
+TARGETS_TILES_VAL = TARGETS_TILES + 'valid/'
 WKT_PATH = META + 'train_wkt_v4.csv'
 GRID_PATH = META + 'grid_sizes.csv'
 
@@ -261,22 +261,24 @@ for i, im_id in enumerate(image_IDs):
     mask_tiles_trn = [mask_tiles[i] for i in indices_trn]
     tiles_val = [tiles[i] for i in indices_val]
     mask_tiles_val = [mask_tiles[i] for i in indices_val]
+    np.save(INDICES_TILES+'%s_trn.npy' % im_id, indices_trn)
+    np.save(INDICES_TILES+'%s_val.npy' % im_id, indices_val)
 
-    savetiles(tiles, '.tif', INPUTS_TILES_ALL, im_id)
-    savetiles(mask_tiles, '.png', TARGETS_TILES_ALL, im_id)
     savetiles(tiles_trn, '.tif', INPUTS_TILES_TRN, im_id)
     savetiles(mask_tiles_trn, '.png', TARGETS_TILES_TRN, im_id)
     savetiles(tiles_val, '.tif', INPUTS_TILES_VAL, im_id)
     savetiles(mask_tiles_val, '.png', TARGETS_TILES_VAL, im_id)
-
-    # Test the files
-    imgs = [loadtif(INPUTS_BIG+im_id+'.tif', roll=True, unit_norm=True),
-            loadtif(INPUTS_TILES_ALL+im_id+'_000.tif'),
-            loadpng(TARGETS_BIG+im_id+'.png'),
-            loadpng(TARGETS_TILES_ALL+im_id+'_000.png')]
-
-    assert np.array_equal(imgs[0][0][0], imgs[1][0][0])  # Top-left pixel
-    assert np.array_equal(imgs[2][0][0], imgs[3][0][0])  # Top-left pixel
     print("Time this loop (%s): %s" % (i, (time() - start_time_i)))
 print("Total time: %s" % (time() - start_time))
+
+
+
+# Test a set of files
+imgs = [loadtif(INPUTS_BIG+im_id+'.tif', roll=True, unit_norm=True),
+        loadtif(INPUTS_TILES_TRN+im_id+'_000.tif'),
+        loadpng(TARGETS_BIG+im_id+'.png'),
+        loadpng(TARGETS_TILES_TRN+im_id+'_000.png')]
+
+assert np.array_equal(imgs[0][0][0], imgs[1][0][0])  # Top-left pixel
+assert np.array_equal(imgs[2][0][0], imgs[3][0][0])  # Top-left pixel
 
