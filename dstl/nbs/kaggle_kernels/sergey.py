@@ -1,7 +1,6 @@
 
 # coding: utf-8
 
-# In[1]:
 
 __author__ = "n01z3"
 
@@ -476,7 +475,6 @@ if __name__ == '__main__':
     make_submit()
 
 
-# In[1]:
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -532,14 +530,12 @@ def scale_and_clip(matrix):
     return matrix
 
 
-# In[2]:
 
 IM_ID = '6120_2_4'
 im = tiff.imread('input/three_band/{}.tif'.format(IM_ID)).transpose([1, 2, 0])
 im_scaled = scale_and_clip(im)
 
 
-# In[6]:
 
 POLY_TYPE = '1'  # buildings
 
@@ -575,12 +571,10 @@ train_polygons_scaled = shapely.affinity.scale(
 train_polygons_scaled
 
 
-# In[8]:
 
 plots(im_scaled, figsize=(24, 24))
 
 
-# In[7]:
 
 def mask_for_polygons(polygons):
     img_mask = np.zeros(im_size, np.uint8)
@@ -597,12 +591,10 @@ def mask_for_polygons(polygons):
 train_mask = mask_for_polygons(train_polygons_scaled)
 
 
-# In[9]:
 
 plots(train_mask, cmap='gray', figsize=(24, 24))
 
 
-# In[4]:
 
 import sys
 import csv
@@ -661,7 +653,6 @@ plots(train_mask, cmap='gray', figsize=(24, 24))
 
 # # Inspect results
 
-# In[6]:
 
 IM_ID = '6120_2_4'
 
@@ -684,13 +675,11 @@ for i in range(w):
 print(time() - start_time)
 
 
-# In[98]:
 
 plots([im_scaled, train_mask, outlines, composition], rows=2, cols=2,
       cmap=[None, 'gray', 'gray', None], figsize=(24, 24))
 
 
-# In[108]:
 
 IM_ID = '6120_2_4'
 
@@ -707,7 +696,6 @@ plots([im_scaled, train_mask, outlines, composition], rows=2, cols=2,
       cmap=[None, 'gray', 'gray', None], figsize=(24, 24))
 
 
-# In[ ]:
 
 plots(composition, figsize=(24, 24))
 
@@ -719,7 +707,6 @@ plots(composition, figsize=(24, 24))
 #  at NetTopologySuite.Operation.Overlay.Snap.SnapIfNeededOverlayOp.GetResultGeometry(SpatialFunction opCode)
 #  at Kaggle.Metrics.Custom.JaccardDSTLParallel.<CalculateIouVectorParallel>b__4(JoinedMP x).
 
-# In[118]:
 
 
 """
@@ -825,7 +812,6 @@ if __name__ == '__main__':
                               side=1e-4)
 
 
-# In[125]:
 
 IM_ID = '6100_0_2'
 C_ID = 4
@@ -833,24 +819,20 @@ subm = pd.read_csv('subm/1_backup.csv')
 subm.head()
 
 
-# In[142]:
 
 wkt_row = subm[(subm.ImageId == IM_ID) & (subm.ClassType == C_ID)].MultipolygonWKT
 polygon_wkt = wkt_row.values[0]
 polygon = shapely.wkt.loads(polygon_wkt)
 
 
-# In[151]:
 
 polygon.is_valid
 
 
-# In[144]:
 
 type(polygon)
 
 
-# In[146]:
 
 wkt_str = shapely.wkt.dumps(polygon, rounding_precision=6)
 
